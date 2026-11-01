@@ -53,6 +53,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Configure checkpoint author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
       - name: Sync with Buffer
         env:
           BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
@@ -60,7 +64,7 @@ jobs:
           args=()
           if [ "${{ github.event_name }}" = "schedule" ]; then args+=(--check-published); fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then args+=(--dry-run); fi
-          node scripts/sync-buffer.mjs "${args[@]}"
+          node scripts/sync-buffer.mjs --checkpoint-ideas "${args[@]}"
       - name: Commit status updates
         if: ${{ always() && !inputs.dry_run }}
         run: |

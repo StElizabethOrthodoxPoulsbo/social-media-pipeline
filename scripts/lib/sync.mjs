@@ -61,6 +61,12 @@ export async function syncPosts({
       state.posts[target] = state.posts[post.file];
       delete state.posts[post.file];
     }
+    for (const entry of Object.values(state.ideas ?? {})) {
+      if (entry.file === post.file) {
+        entry.filenames = [...new Set([...(entry.filenames ?? []), entry.file, target])];
+        entry.file = target;
+      }
+    }
     post.file = target;
     log(`rename ${renames.at(-1).from} -> ${target}`);
   }

@@ -43,6 +43,15 @@ const GET_POST = `query GetPost($input: PostInput!) {
 
 const GET_ORGANIZATIONS = `query { account { organizations { id name } } }`;
 
+const CREATE_IDEA = `mutation CreateIdea($input: CreateIdeaInput!) {
+  createIdea(input: $input) {
+    __typename
+    ... on Idea { id }
+    ... on IdeaResponse { idea { id } }
+    ... on MutationError { message }
+  }
+}`;
+
 const GET_CHANNELS = `query GetChannels($input: ChannelsInput!) {
   channels(input: $input) { id name displayName service }
 }`;
@@ -57,7 +66,7 @@ export class BufferClient {
     this.requests = 0;
   }
 
-  async request(query, variables = {}) {
+  async request(query, variables = {}, { retries = this.maxRetries } = {}) {
     for (let attempt = 0; ; attempt++) {
       this.requests++;
       const res = await this.fetch(this.endpoint, {
@@ -76,7 +85,7 @@ export class BufferClient {
       if (!error && res.ok) return payload.data;
 
       const retryable = code === 'UNEXPECTED' || res.status >= 500;
-      if (retryable && attempt < this.maxRetries) {
+      if (retryable && attempt < retries) {
         await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
         continue;
       }
@@ -118,6 +127,20 @@ export class BufferClient {
   async organizations() {
     const data = await this.request(GET_ORGANIZATIONS);
     return data.account.organizations;
+  }
+
+  async createIdea(input) {
+    // No idempotency key is supported: never replay an ambiguous creation.
+    const data = await this.request(CREATE_IDEA, { input }, { retries: 0 });
+    const result = data?.createIdea;
+    const id = result?.__typename === 'Idea' ? result.id
+      : result?.__typename === 'IdeaResponse' ? result.idea?.id : undefined;
+    if (id) return { id };
+    const err = new BufferError(`createIdea failed: ${result?.message ?? 'no Idea ID returned'}`, {
+      code: result?.__typename === 'UnauthorizedError' ? 'UNAUTHORIZED' : 'MUTATION_ERROR',
+    });
+    err.definiteRejection = ['InvalidInputError', 'UnauthorizedError', 'LimitReachedError'].includes(result?.__typename);
+    throw err;
   }
 
   async channels(organizationId) {

@@ -130,12 +130,12 @@ function isMediaPath(value) {
  * informational. Requirements that only matter for publishing (caption,
  * Instagram image) are errors only once a post is approved.
  */
-export function validatePost(post, config, { forbidPlaceholders = false } = {}) {
+export function validatePost(post, config, { forbidPlaceholders = false, forIdeas = false } = {}) {
   const errors = [];
   const warnings = [];
   const { data } = post;
   const status = data.status ?? 'draft';
-  const publishing = ACTIVE_STATUSES.includes(status);
+  const publishing = !forIdeas && ACTIVE_STATUSES.includes(status);
   const needsWork = (msg) => (publishing ? errors : warnings).push(msg);
 
   if (!FILENAME_PATTERN.test(post.file)) {
@@ -144,6 +144,12 @@ export function validatePost(post, config, { forbidPlaceholders = false } = {}) 
   if (!data.title || typeof data.title !== 'string') errors.push('title is required');
   if (!STATUSES.includes(status)) {
     errors.push(`status "${status}" must be one of: ${STATUSES.join(', ')}`);
+  }
+  if (data.send_to_buffer_ideas !== undefined && typeof data.send_to_buffer_ideas !== 'boolean') {
+    errors.push('send_to_buffer_ideas must be true or false');
+  }
+  if (data.buffer_idea_key !== undefined && (typeof data.buffer_idea_key !== 'string' || !data.buffer_idea_key)) {
+    errors.push('buffer_idea_key must be a nonempty string');
   }
 
   const when = parsePublishAt(data.publish_at, config.timezone);
@@ -156,7 +162,7 @@ export function validatePost(post, config, { forbidPlaceholders = false } = {}) 
     }
   }
 
-  const channels = postChannels(post);
+  const channels = forIdeas ? [] : postChannels(post);
   for (const c of channels) {
     if (!SUPPORTED_CHANNELS.includes(c)) errors.push(`unsupported channel "${c}"`);
   }

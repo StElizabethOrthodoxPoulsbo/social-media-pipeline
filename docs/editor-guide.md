@@ -5,7 +5,7 @@ technical knowledge: everything happens in the web editor.
 
 ## Opening the editor
 
-Go to **https://parishsandbox.github.io/social-media-pipeline/admin/** and sign in.
+Go to **https://stelizabethorthodoxpoulsbo.github.io/social-media-pipeline/admin/** and sign in.
 Bookmark it, or add it to your phone's home screen.
 
 You will see a list of **Social Posts**, sorted by date. Use **Filter** to show,
@@ -16,7 +16,7 @@ for example, only posts that **Need writing** or **Have a problem**, and
 
 1. Click **New Post** (or open an existing draft).
 2. Fill in:
-   - **Title**: a short name for the team, e.g. "St Nicholas". It is not posted.
+   - **Title**: a short name, e.g. "St Nicholas". Used as the title in Ideas exports, but not in social posts.
    - **Publish date & time**: when it should go out (parish local time).
    - **Post to**: Facebook, Instagram, or both.
    - **Caption**: the text exactly as it should appear, including hashtags.
@@ -59,6 +59,32 @@ messages** box tells you when this will happen.
 - Please don't edit or delete these posts directly in Buffer. The editor is the
   source of truth, and its next save will overwrite Buffer.
 
+## Send to Buffer Ideas (no social accounts needed)
+
+Keep the post as **Draft** or **Ready for review** and turn on **Send to Buffer
+Ideas**, then **Save**. This explicit option is separate from approval. You
+do not need to choose a channel or connect Facebook/Instagram. **Approved**
+still requests normal social scheduling, even if the Ideas option is also on.
+
+The next publish workflow exports one snapshot: the title, caption, link,
+file download links and uploaded images with alt text. The publish date becomes
+an Idea **planning date**, not a publishing schedule. **Team notes** and **First
+comment** are not exported. Remove TODO placeholders and HTML comments first.
+
+Reload the editor after the workflow finishes. **Ideas export result** shows
+the returned **Buffer Idea ID** or a readable error, independently of
+**Automation messages** for social posts. Open Buffer's **Create / Ideas**
+board to see the Idea. The CMS status does not become Scheduled or Published.
+
+An exported Idea is a one-time snapshot. Later edits do not update it; disabling
+the option, canceling or deleting the CMS post does not delete it. Update or
+delete the existing Idea manually in Buffer. The public API used here does not
+offer Idea update/delete mutations. Do not duplicate a post's hidden export key.
+
+If the result says **outcome unknown**, ask the maintainer to check Buffer
+before retrying. Automatic retries are blocked because Buffer has no creation
+idempotency key. Do not delete export IDs or state to force another export.
+
 ## Feast-day drafts
 
 Every Monday, drafts are created for Sundays and great feasts in the coming
@@ -81,6 +107,10 @@ Unused calendar drafts also leave once their publish time has passed. They
 are preserved in GitHub under `archive/posts/`, along with their Buffer
 history; files and uploaded images are not deleted. Archived calendar dates
 will not be drafted again.
+
+Calendar drafts opted into Ideas, or carrying an export key, are not considered
+unused: they remain visible until explicitly canceled or published. Canceling
+archives the post and its export evidence, but does not delete its Buffer Idea.
 
 Manual drafts and posts that are Ready for review, Approved or Scheduled
 remain in the editor regardless of age. If canceling a queued post fails,
