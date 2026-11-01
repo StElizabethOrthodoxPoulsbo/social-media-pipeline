@@ -1,11 +1,12 @@
 ---
 title: 22nd Sunday after Pentecost
-status: draft
+status: in-review
 publish_at: 2026-11-01T07:00:00-06:00
 send_to_buffer_ideas: true
-buffer_idea_id: '6ae6e2c29a49d198646c2d97'
-buffer_idea_state: 'exported'
-buffer_idea_message: 'Exported to Buffer Ideas (6ae6e2c29a49d198646c2d97). Not scheduled or published.'
+buffer_idea_id: 6ae6e2c29a49d198646c2d97
+buffer_idea_state: exported
+buffer_idea_message: Exported to Buffer Ideas (6ae6e2c29a49d198646c2d97). Not scheduled or published.
+buffer_idea_key: ba8fcd96-a676-4604-97ea-19275fa9bfe1
 channels:
   - facebook
   - instagram
@@ -23,7 +24,6 @@ notes: |-
 sync_message: ''
 source: orthocal
 orthocal_date: 2026-11-01
-buffer_idea_key: ba8fcd96-a676-4604-97ea-19275fa9bfe1
 ---
 
 Every Sunday is a little Pascha, a weekly celebration of Christ's Resurrection. Today, the 22nd Sunday after Pentecost, we gather to worship together and to hear the Word of God. The Gospel appointed for today is from Luke, chapter 8, and the Epistle is from Galatians, chapter 6.
