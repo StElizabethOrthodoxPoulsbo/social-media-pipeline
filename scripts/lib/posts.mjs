@@ -43,8 +43,8 @@ export function setFields(post, fields) {
   post.data = post.doc.toJS() ?? {};
 }
 
-export async function loadPosts(root) {
-  const dir = path.join(root, POSTS_DIR);
+export async function loadPosts(root, directory = POSTS_DIR) {
+  const dir = path.join(root, directory);
   let names = [];
   try {
     names = (await readdir(dir)).filter((n) => n.endsWith('.md')).sort();

@@ -72,11 +72,35 @@ The caption goes here.
 Buffer post IDs are kept in [`state/buffer.json`](state/buffer.json), not in
 the posts, so the editor never overwrites them.
 
+### Automatic archival
+
+On each main-branch publish/sync run (including the daily run), published and
+canceled posts are moved immediately to [`archive/posts/`](archive/posts).
+Calendar posts with `status: draft` and `source: orthocal` are also archived
+once their `publish_at` is strictly in the past. Manual drafts and all
+in-review, approved and scheduled posts are kept regardless of age.
+Publication still requires human approval.
+
+Canceled posts with future or unknown-time Buffer entries stay in the editor
+until removal succeeds; failures retain their IDs for retry, even after
+their due time passes. Safe local
+archival runs even without Buffer credentials or a successful site deployment.
+`--dry-run` previews everything without saving or archiving.
+
+The archive is outside the CMS collection and preserves Markdown bytes, media
+references and a `buffer.json` snapshot of pre-sync and remaining Buffer
+evidence (IDs, status and publication links). Content-addressed directories
+prevent overwrites and make retries idempotent. Archived calendar dates count
+as covered, so hydration never recreates them. Uploaded media are not deleted.
+Archival is separate from the calendar draft PR workflow, even when it has
+no new drafts.
+
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
 | `content/posts/` | The posts |
+| `archive/posts/` | Historical posts and Buffer evidence, outside the editor |
 | `config/pipeline.yml` | Parish name, time zone, calendar and Buffer settings |
 | `site/` | GitHub Pages site: landing page, `admin/` (the editor) and `uploads/` (images and files) |
 | `scripts/` | Node scripts: `hydrate-calendar`, `sync-buffer`, `validate-posts`, `buffer-channels` |

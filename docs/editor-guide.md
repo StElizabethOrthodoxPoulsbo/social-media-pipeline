@@ -74,6 +74,18 @@ For each one:
 If you don't want to post about a day, set it to **Canceled**. It won't be
 recreated.
 
+## Archived posts
+
+Published and canceled posts leave the editor on the next automation run.
+Unused calendar drafts also leave once their publish time has passed. They
+are preserved in GitHub under `archive/posts/`, along with their Buffer
+history; files and uploaded images are not deleted. Archived calendar dates
+will not be drafted again.
+
+Manual drafts and posts that are Ready for review, Approved or Scheduled
+remain in the editor regardless of age. If canceling a queued post fails,
+it stays visible with an automation message until Buffer removal succeeds.
+
 ## When something goes wrong
 
 If a post needs attention, the **Automation messages** box at the bottom of the

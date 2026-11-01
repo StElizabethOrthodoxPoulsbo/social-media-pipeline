@@ -3,11 +3,12 @@
 // match the Markdown files in content/posts, then record the result.
 //
 // Usage: node scripts/sync-buffer.mjs [--dry-run] [--check-published]
-//   BUFFER_API_KEY  Buffer personal API key (without it, runs as a dry run)
+//   BUFFER_API_KEY  Buffer personal API key (without it, only local archival is saved)
 
 import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { BufferClient } from './lib/buffer.mjs';
+import { archivePosts, loadArchivedPosts } from './lib/archive.mjs';
 import { loadConfig, ROOT } from './lib/config.mjs';
 import { loadPosts, POSTS_DIR, writePost } from './lib/posts.mjs';
 import { syncPosts } from './lib/sync.mjs';
@@ -63,19 +64,24 @@ async function main() {
   const apiKey = process.env.BUFFER_API_KEY;
   const dryRun = args.has('--dry-run') || !apiKey;
   if (!apiKey && !args.has('--dry-run')) {
-    console.warn('BUFFER_API_KEY is not set — running as a dry run (nothing is sent or saved).');
+    console.warn('BUFFER_API_KEY is not set — previewing Buffer changes only; safe local archival still runs.');
   }
 
   const config = await loadConfig();
   const posts = await loadPosts(ROOT);
   const state = await readState();
+  const previousState = structuredClone(state);
+  const archivedPosts = await loadArchivedPosts(ROOT);
+  const now = new Date();
   const client = dryRun ? new DryRunClient() : new BufferClient({ apiKey });
 
   const result = await syncPosts({
     posts,
+    archivedPosts,
     state,
     config,
     client,
+    now,
     checkPublished: args.has('--check-published'),
     checkMedia: dryRun ? async () => [] : checkMedia,
     log: (msg) => console.log(`${dryRun ? '[dry-run] ' : ''}${msg}`),
@@ -84,10 +90,33 @@ async function main() {
   if (!dryRun) {
     for (const { from, to } of result.renames) {
       await rename(path.join(ROOT, POSTS_DIR, from), path.join(ROOT, POSTS_DIR, to));
+      if (previousState.posts?.[from]) {
+        previousState.posts[to] = previousState.posts[from];
+        delete previousState.posts[from];
+      }
     }
     for (const post of result.changed) await writePost(ROOT, post);
+  }
+
+  // Never use simulated Buffer deletions as evidence that archival is safe.
+  const archiveState = dryRun ? previousState : state;
+  if (!args.has('--dry-run')) {
     await mkdir(path.dirname(STATE_FILE), { recursive: true });
-    await writeFile(STATE_FILE, `${JSON.stringify(sortKeys(state), null, 2)}\n`);
+    await writeFile(STATE_FILE, `${JSON.stringify(sortKeys(archiveState), null, 2)}\n`);
+  }
+  const archiveResult = await archivePosts({
+    root: ROOT,
+    posts: dryRun ? await loadPosts(ROOT) : posts,
+    state: archiveState,
+    previousState,
+    timeZone: config.timezone,
+    now,
+    dryRun: args.has('--dry-run'),
+    log: console.log,
+  });
+  if (!args.has('--dry-run')) {
+    await mkdir(path.dirname(STATE_FILE), { recursive: true });
+    await writeFile(STATE_FILE, `${JSON.stringify(sortKeys(archiveState), null, 2)}\n`);
   }
 
   const lines = [
@@ -98,6 +127,8 @@ async function main() {
     `- Removed: ${result.actions.filter((a) => a.type === 'delete').length}`,
     `- Renamed files: ${result.renames.length}`,
     `- API requests: ${client.requests}`,
+    `- Archived${args.has('--dry-run') ? ' (preview)' : ''}: ${archiveResult.archived.length}`,
+    `- Awaiting Buffer removal: ${archiveResult.blocked.length}`,
   ];
   const messages = posts.filter((p) => p.data.sync_message);
   if (messages.length) {
