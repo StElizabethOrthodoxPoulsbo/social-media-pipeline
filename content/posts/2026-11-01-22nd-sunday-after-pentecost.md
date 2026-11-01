@@ -2,11 +2,17 @@
 title: 22nd Sunday after Pentecost
 status: draft
 publish_at: 2026-11-01T07:00:00-06:00
+send_to_buffer_ideas: true
+buffer_idea_id: ''
+buffer_idea_state: ''
+buffer_idea_message: ''
 channels:
   - facebook
   - instagram
-source: orthocal
-orthocal_date: 2026-11-01
+images: []
+link: ''
+attachments: []
+first_comment: ''
 notes: |-
   Sunday, 2026-11-01 — Six-stichera-rank commemoration
   Saints: Unmercenaries and Wonderworkers Cosmas and Damian; St Theodota, Mother of Cosmas and Damian; Holy New Martyr Helen of Sinope (18th c.)
@@ -14,6 +20,9 @@ notes: |-
   Fasting: No Fast
   Calendar: https://orthocal.info/readings/gregorian/2026/11/01/
   Add an icon image before approving — Instagram posts need one.
+sync_message: ''
+source: orthocal
+orthocal_date: 2026-11-01
 ---
 
 Every Sunday is a little Pascha, a weekly celebration of Christ's Resurrection. Today, the 22nd Sunday after Pentecost, we gather to worship together and to hear the Word of God. The Gospel appointed for today is from Luke, chapter 8, and the Epistle is from Galatians, chapter 6.
