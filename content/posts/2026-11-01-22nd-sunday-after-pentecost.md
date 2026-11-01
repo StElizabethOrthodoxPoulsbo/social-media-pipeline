@@ -3,9 +3,9 @@ title: 22nd Sunday after Pentecost
 status: draft
 publish_at: 2026-11-01T07:00:00-06:00
 send_to_buffer_ideas: true
-buffer_idea_id: ''
-buffer_idea_state: 'pending'
-buffer_idea_message: 'Creating Buffer Idea. If interrupted, check Buffer before retrying; automatic replay is blocked.'
+buffer_idea_id: '6ae6e2c29a49d198646c2d97'
+buffer_idea_state: 'exported'
+buffer_idea_message: 'Exported to Buffer Ideas (6ae6e2c29a49d198646c2d97). Not scheduled or published.'
 channels:
   - facebook
   - instagram
