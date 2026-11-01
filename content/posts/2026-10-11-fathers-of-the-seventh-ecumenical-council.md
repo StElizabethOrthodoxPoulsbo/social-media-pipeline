@@ -20,7 +20,7 @@ notes: |-
   Fasting: No Fast
   Calendar: https://orthocal.info/readings/gregorian/2026/10/11/
   Add an icon image before approving — Instagram posts need one.
-sync_message: ''
+sync_message: 'facebook: Buffer channel ID is not configured (config/pipeline.yml → buffer.channels.facebook) · instagram: Buffer channel ID is not configured (config/pipeline.yml → buffer.channels.instagram)'
 source: orthocal
 orthocal_date: 2026-10-11
 ---
