@@ -19,6 +19,7 @@ const DEFAULTS = {
     default_channels: ['facebook', 'instagram'],
   },
   buffer: {
+    organization_id: '',
     channels: { facebook: '', instagram: '' },
     schedule_window_days: 14,
   },

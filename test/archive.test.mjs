@@ -80,6 +80,25 @@ test('same filename with different content is never overwritten and dry runs pre
   assert.equal((await loadArchivedPosts(root)).length, 2);
 });
 
+test('archival preserves separate Idea evidence and retains its tombstone without remote calls', async (t) => {
+  const post = makePost({
+    ...front, status: 'canceled', send_to_buffer_ideas: true,
+    buffer_idea_key: 'idea-key', buffer_idea_id: 'idea-1', buffer_idea_state: 'exported',
+  });
+  const root = await fixture(t, post);
+  const idea = { id: 'idea-1', status: 'exported', organizationId: 'org-1', hash: 'idea-hash' };
+  const state = { posts: {}, ideas: { 'idea-key': idea } };
+  await syncPosts({ posts: [post], state, config, client: {}, now });
+  assert.deepEqual((await archive(root, [post], state)).archived, [post.file]);
+  const [directory] = await readdir(path.join(root, ARCHIVE_DIR));
+  const evidence = JSON.parse(await readFile(path.join(root, ARCHIVE_DIR, directory, 'buffer.json'), 'utf8'));
+  assert.deepEqual(evidence.idea, idea);
+  assert.deepEqual(state.ideas, { 'idea-key': idea });
+  const [archived] = await loadArchivedPosts(root);
+  assert.equal(archived.data.buffer_idea_id, 'idea-1');
+  assert.deepEqual(archived.archivedBufferIds, []);
+});
+
 test('existing conflicting archive content fails explicitly without removing the active source', async (t) => {
   const post = makePost({ ...front, status: 'published' });
   const text = serializePost(post);

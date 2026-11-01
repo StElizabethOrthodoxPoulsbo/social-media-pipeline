@@ -1,17 +1,19 @@
 #!/usr/bin/env node
-// Sync approved posts to Buffer: create, edit or delete Buffer posts so they
-// match the Markdown files in content/posts, then record the result.
+// Reconcile approved social posts and explicitly opted-in Idea snapshots
+// with Buffer, recording their separate results.
 //
-// Usage: node scripts/sync-buffer.mjs [--dry-run] [--check-published]
+// Usage: node scripts/sync-buffer.mjs [--dry-run] [--check-published] [--checkpoint-ideas]
 //   BUFFER_API_KEY  Buffer personal API key (without it, only local archival is saved)
 
 import { appendFile, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { BufferClient } from './lib/buffer.mjs';
 import { archivePosts, loadArchivedPosts } from './lib/archive.mjs';
 import { loadConfig, ROOT } from './lib/config.mjs';
 import { loadPosts, POSTS_DIR, writePost } from './lib/posts.mjs';
 import { syncPosts } from './lib/sync.mjs';
+import { syncIdeas } from './lib/ideas.mjs';
 
 const STATE_FILE = path.join(ROOT, 'state', 'buffer.json');
 
@@ -75,6 +77,29 @@ async function main() {
   const now = new Date();
   const client = dryRun ? new DryRunClient() : new BufferClient({ apiKey });
 
+  const checkpoint = async (post) => {
+    if (!args.has('--checkpoint-ideas') || process.env.GITHUB_ACTIONS !== 'true') {
+      throw new Error('Live Ideas export must run in the main publish workflow with --checkpoint-ideas so its ledger is pushed before creation');
+    }
+    const git = (...argv) => execFileSync('git', argv, { cwd: ROOT, stdio: 'pipe', encoding: 'utf8' });
+    if (git('branch', '--show-current').trim() !== 'main') {
+      throw new Error('Ideas checkpoint requires the main branch');
+    }
+    await writePost(ROOT, post);
+    await mkdir(path.dirname(STATE_FILE), { recursive: true });
+    await writeFile(STATE_FILE, `${JSON.stringify(sortKeys(state), null, 2)}\n`);
+    git('add', '--', path.join(POSTS_DIR, post.file), 'state/buffer.json');
+    git('commit', '-m', 'chore: checkpoint Buffer Idea export');
+    // A rejected push aborts creation. After creation, the remote pending
+    // checkpoint remains a durable guard even if saving the result fails.
+    git('push', 'origin', 'HEAD:main');
+  };
+  const ideaResult = await syncIdeas({
+    posts, state, config, client, now, dryRun, checkpoint,
+    checkMedia: dryRun ? async () => [] : checkMedia,
+    log: (msg) => console.log(`${dryRun ? '[dry-run] ' : ''}${msg}`),
+  });
+
   const result = await syncPosts({
     posts,
     archivedPosts,
@@ -95,7 +120,7 @@ async function main() {
         delete previousState.posts[from];
       }
     }
-    for (const post of result.changed) await writePost(ROOT, post);
+    for (const post of new Set([...ideaResult.changed, ...result.changed])) await writePost(ROOT, post);
   }
 
   // Never use simulated Buffer deletions as evidence that archival is safe.
@@ -125,6 +150,8 @@ async function main() {
     `- Created: ${result.actions.filter((a) => a.type === 'create').length}`,
     `- Updated: ${result.actions.filter((a) => a.type === 'edit').length}`,
     `- Removed: ${result.actions.filter((a) => a.type === 'delete').length}`,
+    `- Ideas ${dryRun ? 'previewed' : 'exported'} (not scheduled): ${ideaResult.actions.length}`,
+    `- Ideas needing attention: ${ideaResult.failures.length}`,
     `- Renamed files: ${result.renames.length}`,
     `- API requests: ${client.requests}`,
     `- Archived${args.has('--dry-run') ? ' (preview)' : ''}: ${archiveResult.archived.length}`,
@@ -135,12 +162,17 @@ async function main() {
     lines.push('', '### Messages', '');
     for (const p of messages) lines.push(`- \`${p.file}\`: ${p.data.sync_message}`);
   }
+  const ideaMessages = posts.filter((p) => p.data.buffer_idea_message);
+  if (ideaMessages.length) {
+    lines.push('', '### Ideas export results', '');
+    for (const post of ideaMessages) lines.push(`- \`${post.file}\`: ${post.data.buffer_idea_message}`);
+  }
   if (result.halted) lines.push('', `**Stopped early:** ${result.halted.message}`);
   const summary = `${lines.join('\n')}\n`;
   console.log(`\n${summary}`);
   if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, summary);
 
-  if (result.halted) process.exitCode = 1;
+  if (result.halted || ideaResult.failures.length) process.exitCode = 1;
 }
 
 main().catch((err) => {

@@ -14,7 +14,7 @@ timezone: America/Chicago
 
 # Public URL where the site/ folder is published (GitHub Pages). Uploaded
 # images and files are served from here so Buffer can fetch them.
-site_url: https://parishsandbox.github.io/social-media-pipeline
+site_url: https://stelizabethorthodoxpoulsbo.github.io/social-media-pipeline
 
 calendar:
   # "gregorian" = New (Revised Julian) Calendar, "julian" = Old Calendar.
@@ -35,6 +35,10 @@ calendar:
   default_channels: [facebook, instagram]
 
 buffer:
+  # Ideas require only an organization, not connected social channels.
+  # Leave blank to use the API key's sole organization. If it has several,
+  # choose an ID from `npm run buffer:channels`; automation will not guess.
+  organization_id: ""
   # Buffer channel IDs. Run `npm run buffer:channels` with BUFFER_API_KEY set
   # to list the IDs for your connected Facebook Page / Instagram account.
   channels:

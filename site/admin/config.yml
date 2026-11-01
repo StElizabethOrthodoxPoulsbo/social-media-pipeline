@@ -7,7 +7,7 @@
 
 backend:
   name: github
-  repo: ParishSandbox/social-media-pipeline
+  repo: StElizabethOrthodoxPoulsbo/social-media-pipeline
   branch: main
   # Sign-in for non-technical editors: deploy Sveltia CMS Authenticator (see
   # docs/setup.md) and put its URL here. Until then, editors can use
@@ -20,8 +20,8 @@ backend:
     uploadMedia: "media: upload {{path}} ({{author-login}})"
     deleteMedia: "media: delete {{path}} ({{author-login}})"
 
-site_url: https://parishsandbox.github.io/social-media-pipeline
-display_url: https://parishsandbox.github.io/social-media-pipeline
+site_url: https://stelizabethorthodoxpoulsbo.github.io/social-media-pipeline
+display_url: https://stelizabethorthodoxpoulsbo.github.io/social-media-pipeline
 
 # Uploaded images and files are committed to site/uploads and published with
 # the site, which gives Buffer a public URL to fetch them from.
@@ -40,6 +40,8 @@ collections:
       Write a post, then set its status to "Approved" when it is ready. Approved
       posts are scheduled in Buffer automatically, and later edits are sent to
       Buffer too.
+      To send a snapshot to Buffer Ideas without scheduling, leave it as Draft
+      and turn on "Send to Buffer Ideas".
     folder: /content/posts
     extension: md
     format: frontmatter
@@ -81,7 +83,7 @@ collections:
       - name: title
         label: Title
         widget: string
-        hint: A short name for the team, e.g. "St Nicholas". It is not posted.
+        hint: A short name, e.g. "St Nicholas". Used as the Idea title when exporting, not in social posts.
 
       - name: status
         label: Status
@@ -105,15 +107,48 @@ collections:
         input_timezone: America/Chicago
         hint: Parish local time.
 
+      - name: send_to_buffer_ideas
+        label: Send to Buffer Ideas
+        widget: boolean
+        default: false
+        required: false
+        hint: >-
+          Explicit opt-in: send one snapshot to Buffer Ideas on save, without
+          connected social accounts. Keep status Draft or Ready for review to
+          avoid social scheduling. The date is a planning date, not a schedule.
+          Later edits do not update the Idea; turning this off or canceling does
+          not delete it. Manage the existing Idea in Buffer.
+
+      - name: buffer_idea_id
+        label: Buffer Idea ID
+        widget: string
+        required: false
+        readonly: true
+
+      - name: buffer_idea_state
+        label: Ideas export state
+        widget: string
+        required: false
+        readonly: true
+
+      - name: buffer_idea_message
+        label: Ideas export result
+        widget: text
+        required: false
+        readonly: true
+
+      - { name: buffer_idea_key, label: Ideas export key, widget: hidden, required: false }
+
       - name: channels
         label: Post to
         widget: select
         multiple: true
-        min: 1
+        required: false
         default: [facebook, instagram]
         options:
           - { label: Facebook, value: facebook }
           - { label: Instagram, value: instagram }
+        hint: Used for Approved social posts only; Ideas do not require any channel.
 
       - name: body
         label: Caption

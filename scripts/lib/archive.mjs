@@ -8,6 +8,9 @@ export const ARCHIVE_DIR = path.join('archive', 'posts');
 
 export function qualifiesForArchive(post, timeZone, now) {
   if (['published', 'canceled'].includes(post.data.status)) return true;
+  // Requested/exported Ideas are not unused calendar drafts. Keep their
+  // result visible until the editor explicitly cancels or publishes the post.
+  if (post.data.send_to_buffer_ideas === true || post.data.buffer_idea_key) return false;
   const when = parsePublishAt(post.data.publish_at, timeZone);
   return post.data.status === 'draft' && post.data.source === 'orthocal'
     && when !== null && when.getTime() < now.getTime();
@@ -71,6 +74,9 @@ export async function archivePosts({
       file: post.file,
       before: previousState.posts?.[post.file] ?? {},
       remaining: entries,
+      ...(post.data.buffer_idea_key ? {
+        idea: state.ideas?.[post.data.buffer_idea_key] ?? previousState.ideas?.[post.data.buffer_idea_key] ?? null,
+      } : {}),
     }, null, 2)}\n`;
     const digest = createHash('sha256').update(text).update(evidence).digest('hex');
     const directory = path.join(root, ARCHIVE_DIR, digest);

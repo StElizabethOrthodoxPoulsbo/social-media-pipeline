@@ -12,6 +12,8 @@ A small, git-based pipeline for the social media team of an Orthodox parish:
 - **Buffer scheduling**: approved posts are scheduled in [Buffer](https://buffer.com)
   for Facebook and Instagram. Edits to a scheduled post update it in Buffer,
   and canceling a post removes it.
+- **Buffer Ideas**: a separate per-post opt-in exports a snapshot without any
+  connected social account. Ideas are not scheduled or published posts.
 
 ```mermaid
 flowchart LR
@@ -32,7 +34,7 @@ Each post's `status` field holds its publication state:
 
 | Status | Set by | Meaning |
 | --- | --- | --- |
-| `draft` | editor / agent | Being written. Never sent to Buffer. |
+| `draft` | editor / agent | Being written. Never socially scheduled; can explicitly opt into Ideas. |
 | `in-review` | editor | Ready for someone else to check. |
 | `approved` | editor | Ready. It will be scheduled in Buffer once it is within `schedule_window_days` of its publish time. |
 | `scheduled` | automation | Queued in Buffer on every selected channel. Edits are pushed to Buffer. |
@@ -63,6 +65,7 @@ attachments:                            # optional; download links added to the 
 first_comment: "#SaintNicholas"         # optional
 notes: For the team only                # optional; never posted
 sync_message: ""                        # written by the automation
+send_to_buffer_ideas: false              # explicit snapshot export, separate from approval
 source: manual                          # or orthocal
 orthocal_date: 2026-12-06               # set on calendar drafts
 ---
@@ -72,6 +75,22 @@ The caption goes here.
 Buffer post IDs are kept in [`state/buffer.json`](state/buffer.json), not in
 the posts, so the editor never overwrites them.
 
+Ideas have their own `ideas` ledger keyed by a persistent `buffer_idea_key`.
+The CMS displays read-only `buffer_idea_id`, `buffer_idea_state` and
+`buffer_idea_message` fields. A main-workflow Git checkpoint is pushed **before**
+each creation, then the returned ID is pushed immediately afterward. A timeout,
+interruption or failed result push cannot cause automatic duplicate creation:
+pending/uncertain attempts require human reconciliation. The Idea mutation is
+never automatically retried. Deleting a post retains its ledger as a tombstone.
+Creation does not change social status or use channel APIs.
+
+The supported [Buffer schema](https://developers.buffer.com/reference.md)
+accepts Idea title, text, planning date and `media` entries with URL, type and
+alt text. This integration sends images as `image`, includes attachment URLs in
+the caption, and omits internal notes and first comments. No Idea update/delete
+mutation or creation idempotency key is exposed, so later edits/removals are
+manual in Buffer. See the [editor guide](docs/editor-guide.md#send-to-buffer-ideas-no-social-accounts-needed).
+
 ### Automatic archival
 
 On each main-branch publish/sync run (including the daily run), published and
@@ -80,6 +99,8 @@ Calendar posts with `status: draft` and `source: orthocal` are also archived
 once their `publish_at` is strictly in the past. Manual drafts and all
 in-review, approved and scheduled posts are kept regardless of age.
 Publication still requires human approval.
+Calendar drafts requested/exported to Ideas also remain visible until explicitly
+canceled or published; archival preserves their separate Idea ledger evidence.
 
 Canceled posts with future or unknown-time Buffer entries stay in the editor
 until removal succeeds; failures retain their IDs for retry, even after
