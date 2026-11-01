@@ -5,7 +5,7 @@ name: Publish site & sync Buffer
 on:
   push:
     branches: [main]
-    paths: [content/**, site/**, config/**, scripts/**]
+    paths: [content/**, site/**, config/**, scripts/**, .github/workflows/publish.yml]
   schedule:
     # Daily: picks up posts entering the scheduling window and marks sent posts as published.
     - cron: "17 11 * * *"
@@ -42,6 +42,7 @@ jobs:
 
   sync-buffer:
     needs: deploy-site
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -61,11 +62,11 @@ jobs:
           if [ "${{ inputs.dry_run }}" = "true" ]; then args+=(--dry-run); fi
           node scripts/sync-buffer.mjs "${args[@]}"
       - name: Commit status updates
-        if: ${{ !inputs.dry_run }}
+        if: ${{ always() && !inputs.dry_run }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
-          git add -A content/posts state
+          git add -A content/posts archive state
           if git diff --cached --quiet; then echo "Nothing to commit"; exit 0; fi
           git commit -m "chore: sync post status with Buffer"
           for attempt in 1 2 3; do

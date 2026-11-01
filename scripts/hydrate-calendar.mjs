@@ -12,6 +12,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import YAML from 'yaml';
 import { loadConfig, ROOT } from './lib/config.mjs';
+import { loadArchivedPosts } from './lib/archive.mjs';
 import { dateRange, dayTitle, daySlugSource, describeDay, fetchRange, selectCandidates } from './lib/orthocal.mjs';
 import { loadPosts, POSTS_DIR, slugify } from './lib/posts.mjs';
 import { localDate, zonedIso } from './lib/time.mjs';
@@ -63,14 +64,18 @@ async function exists(file) {
   }
 }
 
+export async function loadCoveredCalendarDates(root) {
+  const posts = [...await loadPosts(root), ...await loadArchivedPosts(root)];
+  return new Set(posts.map((p) => p.data.orthocal_date).filter(Boolean).map(String));
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const config = await loadConfig();
   const today = args.today ?? localDate(new Date(), config.timezone);
   const { start, end } = dateRange(today, config.calendar.lookahead_days);
 
-  const posts = await loadPosts(ROOT);
-  const covered = new Set(posts.map((p) => p.data.orthocal_date).filter(Boolean).map(String));
+  const covered = await loadCoveredCalendarDates(ROOT);
 
   console.log(`Fetching ${config.calendar.source} calendar ${start} … ${end} from orthocal.info`);
   const days = await fetchRange(config.calendar.source, start, end);

@@ -21,6 +21,7 @@ export const MIN_LEAD_MS = 5 * 60_000;
  */
 export async function syncPosts({
   posts,
+  archivedPosts = [],
   state,
   config,
   client,
@@ -140,13 +141,15 @@ export async function syncPosts({
     // posts moved back to draft / canceled).
     for (const [channel, entry] of Object.entries(entries)) {
       if (desired.includes(channel)) continue;
-      if (entry.status === 'sent' || new Date(entry.dueAt).getTime() <= now.getTime()) continue;
+      if (entry.status === 'sent'
+        || (!entry.removalPending && new Date(entry.dueAt).getTime() <= now.getTime())) continue;
       try {
         await call(() => client.deletePost(entry.id));
         actions.push({ type: 'delete', file: post.file, channel, id: entry.id });
         log(`delete ${post.file} [${channel}] ${entry.id}`);
       } catch (err) {
         if (err.code !== 'NOT_FOUND') {
+          entry.removalPending = true;
           errors.push(`${channel}: could not remove from Buffer: ${err.message}`);
           continue;
         }
@@ -188,17 +191,26 @@ export async function syncPosts({
   }
 
   // 4. Posts deleted from the repository: remove their future Buffer posts.
+  // Retire state already preserved in the archive without deleting its remote
+  // posts. Match IDs, not filenames: a later post can reuse an archived name.
   const files = new Set(posts.map((p) => p.file));
+  const archivedIds = new Set(archivedPosts.flatMap((p) => p.archivedBufferIds ?? []));
   for (const [file, entries] of Object.entries(state.posts)) {
     if (files.has(file)) continue;
     for (const [channel, entry] of Object.entries(entries)) {
-      if (entry.status !== 'sent' && new Date(entry.dueAt).getTime() > now.getTime()) {
+      if (archivedIds.has(entry.id)) {
+        delete entries[channel];
+        continue;
+      }
+      if (entry.status !== 'sent' && (entry.removalPending
+        || !Number.isFinite(new Date(entry.dueAt).getTime()) || new Date(entry.dueAt).getTime() > now.getTime())) {
         try {
           await call(() => client.deletePost(entry.id));
           actions.push({ type: 'delete', file, channel, id: entry.id });
           log(`delete ${file} [${channel}] ${entry.id} (post file removed)`);
         } catch (err) {
           if (err.code !== 'NOT_FOUND') {
+            entry.removalPending = true;
             log(`warning: could not delete ${entry.id} for removed ${file}: ${err.message}`);
             continue;
           }
